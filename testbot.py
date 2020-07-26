@@ -10,7 +10,7 @@ TOKEN = os.getenv('DISCORD_TOKEN')
 CLIENT = discord.Client()
 
 DISCORD_GUILD = os.getenv('DISCORD_GUILD')
-GAME_CATEGORY_NAME = "The Death Star (games)"
+GAME_CATEGORY_NAME = 'The Death Star (games)'
 
 logger = logging.getLogger()
 handler = logging.StreamHandler()
@@ -151,6 +151,9 @@ async def join_game(arguments: list, message: discord.message):
         logging.debug(f'The game {game_name} does not yet exist!')
         await message.channel.send(f'Oops! The game {game_name} does not yet exist!')
         return
+
+    if game_role in message.author.roles:
+        await message.channel.send(f'Hmm, seems you already play that game....')
 
     await message.author.add_roles(game_role)
 
