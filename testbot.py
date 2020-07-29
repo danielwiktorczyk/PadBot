@@ -1,6 +1,7 @@
 import os
 import discord
 import random
+import re
 import logging
 
 from dotenv import load_dotenv
@@ -12,10 +13,9 @@ CLIENT = discord.Client()
 DISCORD_GUILD = os.getenv('DISCORD_GUILD')
 GAME_CATEGORY_NAME = 'The Death Star (games)'
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 handler = logging.StreamHandler()
-formatter = logging.Formatter(
-        '%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
+formatter = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
@@ -25,10 +25,10 @@ PREFIX = 'pb'
 
 @CLIENT.event
 async def on_ready():
-    print(f'{CLIENT.user} has connected to Discord!')
+    logger.info(f'{CLIENT.user} has connected to Discord!')
 
     guild = discord.utils.get(CLIENT.guilds, name=DISCORD_GUILD)
-    print(f'Currently in server: {guild.name}, with ID: {guild.id})')
+    logger.info(f'Currently in server: {guild.name}, with ID: {guild.id})')
 
     await CLIENT.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name='Almando'))
 
@@ -43,12 +43,11 @@ async def on_message(message: discord.message):
     if message.author == CLIENT.user:
         return
 
+    await dadbot(message)
+
     if message.content.startswith(PREFIX):
         await handle_command(message)
-
-    # TODO Dadbot feature here
-    if 'I\'m' in message.content:
-        pass
+        return
 
 
 async def handle_command(message: discord.message):
@@ -72,6 +71,23 @@ async def handle_command(message: discord.message):
         arguments = message.content.split()[3:]
         await join_game(arguments, message)
         return
+
+
+async def dadbot(message: discord.message):
+    content = message.content
+
+    if len(content) > 69 or content.count('.') > 2:
+        return
+
+    dadbot_pattern = re.compile('[Ii]\'?[Mm] (?P<mocked_name>\w+)')
+    m = re.match(dadbot_pattern, content)
+    if not m:
+        logger.debug('No dad joke to be made, couldn\'t find pattern')
+        return
+
+    mocked_name = m.group('mocked_name').capitalize()
+    logger.info('Incoming dad joke')
+    await message.channel.send(f'Hi {mocked_name}, I\'m Dad!')
 
 
 async def create_new_role(arguments: list, message: discord.message):
