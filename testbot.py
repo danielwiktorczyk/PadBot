@@ -15,7 +15,7 @@ GAME_CATEGORY_NAME = 'The Death Star (games)'
 logger = logging.getLogger()
 handler = logging.StreamHandler()
 formatter = logging.Formatter(
-        '%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
+    '%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
@@ -71,6 +71,14 @@ async def handle_command(message: discord.message):
         logging.info('Request to join a game')
         arguments = message.content.split()[3:]
         await join_game(arguments, message)
+        return
+
+    if content.startswith(f'{PREFIX} poll'):
+        logging.info('Request to make a new poll')
+        user_poll = await format_poll(message)
+        if not user_poll:
+            return
+        await make_poll(user_poll, message)
         return
 
 
@@ -159,5 +167,58 @@ async def join_game(arguments: list, message: discord.message):
 
     logging.info(f'Assigned {message.author} to {game_name}')
     await message.channel.send(f'Have fun playing {game_name}, {message.author}!')
+
+
+async def format_poll(message: discord.message):
+    command = message.content.replace("pb poll", '').strip()
+
+    if "\"" not in command or ',' not in command:
+        logging.debug('No poll title or arguments were passed')
+        await message.channel.send("You can't just make a poll without a title or arguments! Please insert a poll "
+                                   "title that is surrounded in \"\" as well as arguments proceeded with commas.")
+        return
+
+    title = command[command.find("\"") + 1:command.rfind("\"")]
+    options = command.replace(f'\"{title}\"', '').strip().split(", ")
+    logging.info(command)
+    poll = {
+        "title": title,
+        "options": options
+    }
+    logging.info('title --' + poll.get("title"))
+    logging.info(poll.get("options"))
+    return poll
+
+
+async def make_poll(arguments: dict, message: discord.message):
+    if not arguments:
+        logging.debug('No arguments passed')
+        await message.channel.send("A poll has to have a title and options to vote on!")
+        return
+
+    options = arguments.get("options")
+    argument_length = len(options)
+
+    if argument_length > 9:
+        logging.debug('Too many arguments passed')
+        await message.channel.send("Too many poll options! The maximum amount of poll options you can add is 10!")
+        return
+
+    poll_title = arguments.get("title")
+    color = discord.Colour(random.randint(0, 0xFFFFFF))
+    emojis = ['🔴', '🟡', '🟢', '🔵', '🟣', '🟤', '⚫', '⚪']
+    option_string = ''
+    for i in range(argument_length):
+        options[i] = f"{emojis[i]} {options[i]} \n"
+        option_string = f'{option_string} {options[i]}'
+
+    poll = ''.join(options)
+    poll_embed = discord.Embed(title=poll_title, description=option_string, color=color)
+    logging.info(f'Sending message')
+    bot_poll = await message.channel.send(embed=poll_embed)  # A bot sending a message actually returns the message!
+
+    for i in range(argument_length):
+        await bot_poll.add_reaction(emojis[i])
+
 
 CLIENT.run(TOKEN)
