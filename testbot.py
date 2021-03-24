@@ -167,31 +167,45 @@ async def join_game(arguments: list, message: discord.message):
 
 
 async def make_poll(message: discord.message):
-    command = message.content.replace("pb poll", '').strip()
+    command = message.content.replace('pb poll', '').strip()
 
-    if not command or "\"" not in command or ',' not in command:
-        logging.debug('No poll title or arguments were passed')
-        await message.channel.send('You can\'t just make a poll without a title or arguments! Please insert a poll '
-                                   'title that is surrounded in \"\" as well as arguments proceeded with commas. In '
-                                   'addition, the minimum amount of arguments is 2!')
+    if not command:
+        logging.debug(f'No poll title or poll options were passed')
+        await message.channel.send(f'You can\'t just make a poll without a title or poll options! Please insert a poll '
+                                   'title that is surrounded in \"\" as well as poll options proceeded with commas. In '
+                                   'addition, the minimum amount of poll options is 2 and maximum is 8!\nExample '
+                                   'command: ```pb poll '
+                                   '"Title" option1, option2```')
+        return
+    if "\"" not in command:
+        logging.debug(f'No poll title added')
+        await message.channel.send(f'No poll title added to the poll! To put a poll title, surround the title '
+                                   'with \"\" followed by poll options')
+        return
+
+    if ',' not in command:
+        logging.debug(f'No poll options added')
+        await message.channel.send(f'Poll options are missing in the poll! To put poll options, type the option '
+                                   'after the title followed by commas!')
         return
 
     title = command[command.find("\"") + 1:command.rfind("\"")]
     options = command.replace(f'\"{title}\"', '').strip().split(", ")
     logging.info(command)
     arguments = {
-        "title": title,
-        "options": options
+        'title': title,
+        'options': options
     }
 
-    options = arguments.get("options")
+    options = arguments.get('options')
     argument_length = len(options)
     if argument_length > 8:
-        logging.debug('Too many arguments passed')
-        await message.channel.send("Too many arguments passed! The maximum amount of arguments you can add is 8!")
+        logging.debug(f'Too many poll options are being added')
+        await message.channel.send(f'You are adding too many options to the poll! The maximum amount of poll options '
+                                   f'you can add is 8!')
         return
 
-    poll_title = arguments.get("title")
+    poll_title = arguments.get('title')
     color = discord.Colour(random.randint(0, 0xFFFFFF))
 
     emojis = ['🔴', '🟡', '🟢', '🔵', '🟣', '🟤', '⚫', '⚪']
@@ -199,12 +213,12 @@ async def make_poll(message: discord.message):
         options[i] = f'{emojis[i]} {options[i]}'
 
     poll_embed = discord.Embed(title=poll_title, description='\n'.join(options), color=color)
-    logging.info(f'Sending message')
+    logging.info(f'Sending the fully completed poll')
     bot_poll: discord.Message = await message.channel.send(
-        embed=poll_embed)  # A bot sending a message actually returns the message!
+        embed=poll_embed)
 
     for i in range(argument_length):
         await bot_poll.add_reaction(emojis[i])
-
+    logging.info(f'All of the reactions have been added to the poll')
 
 CLIENT.run(TOKEN)
